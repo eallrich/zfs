@@ -23,7 +23,7 @@
  * Use is subject to license terms.
  */
 /*
- * Copyright (c) 2012, 2018 by Delphix. All rights reserved.
+ * Copyright (c) 2012, 2019 by Delphix. All rights reserved.
  */
 
 #include <sys/zfs_context.h>
@@ -848,7 +848,7 @@ space_map_truncate(space_map_t *sm, int blocksize, dmu_tx_t *tx)
 	    doi.doi_bonus_size != sizeof (space_map_phys_t)) ||
 	    doi.doi_data_block_size != blocksize ||
 	    doi.doi_metadata_block_size != 1 << space_map_ibs) {
-		zfs_dbgmsg("txg %llu, spa %s, sm %p, reallocating "
+		zfs_dbgmsg("txg %llu, spa %s, sm %px, reallocating "
 		    "object[%llu]: old bonus %u, old blocksz %u",
 		    dmu_tx_get_txg(tx), spa_name(spa), sm, sm->sm_object,
 		    doi.doi_bonus_size, doi.doi_data_block_size);
@@ -1066,4 +1066,12 @@ uint64_t
 space_map_length(space_map_t *sm)
 {
 	return (sm != NULL ? sm->sm_phys->smp_length : 0);
+}
+
+uint64_t
+space_map_nblocks(space_map_t *sm)
+{
+	if (sm == NULL)
+		return (0);
+	return (DIV_ROUND_UP(space_map_length(sm), sm->sm_blksz));
 }

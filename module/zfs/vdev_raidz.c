@@ -37,7 +37,7 @@
 #include <sys/vdev_raidz_impl.h>
 
 #ifdef ZFS_DEBUG
-#include <sys/vdev_initialize.h>	/* vdev_xlate testing */
+#include <sys/vdev.h>	/* For vdev_xlate() in vdev_raidz_io_verify() */
 #endif
 
 /*
@@ -98,7 +98,7 @@
  *	R = 4^n-1 * D_0 + 4^n-2 * D_1 + ... + 4^1 * D_n-2 + 4^0 * D_n-1
  *	  = ((...((D_0) * 4 + D_1) * 4 + ...) * 4 + D_n-2) * 4 + D_n-1
  *
- * We chose 1, 2, and 4 as our generators because 1 corresponds to the trival
+ * We chose 1, 2, and 4 as our generators because 1 corresponds to the trivial
  * XOR operation, and 2 and 4 can be computed quickly and generate linearly-
  * independent coefficients. (There are no additional coefficients that have
  * this property which is why the uncorrected Plank method breaks down.)
@@ -447,7 +447,7 @@ vdev_raidz_map_alloc(zio_t *zio, uint64_t ashift, uint64_t dcols,
 	/*
 	 * If all data stored spans all columns, there's a danger that parity
 	 * will always be on the same device and, since parity isn't read
-	 * during normal operation, that that device's I/O bandwidth won't be
+	 * during normal operation, that device's I/O bandwidth won't be
 	 * used effectively. We therefore switch the parity every 1MB.
 	 *
 	 * ... at least that was, ostensibly, the theory. As a practical
@@ -2336,7 +2336,7 @@ vdev_raidz_state_change(vdev_t *vd, int faulted, int degraded)
 /*
  * Determine if any portion of the provided block resides on a child vdev
  * with a dirty DTL and therefore needs to be resilvered.  The function
- * assumes that at least one DTL is dirty which imples that full stripe
+ * assumes that at least one DTL is dirty which implies that full stripe
  * width blocks must be resilvered.
  */
 static boolean_t
@@ -2403,17 +2403,17 @@ vdev_raidz_xlate(vdev_t *cvd, const range_seg_t *in, range_seg_t *res)
 }
 
 vdev_ops_t vdev_raidz_ops = {
-	vdev_raidz_open,
-	vdev_raidz_close,
-	vdev_raidz_asize,
-	vdev_raidz_io_start,
-	vdev_raidz_io_done,
-	vdev_raidz_state_change,
-	vdev_raidz_need_resilver,
-	NULL,
-	NULL,
-	NULL,
-	vdev_raidz_xlate,
-	VDEV_TYPE_RAIDZ,	/* name of this vdev type */
-	B_FALSE			/* not a leaf vdev */
+	.vdev_op_open = vdev_raidz_open,
+	.vdev_op_close = vdev_raidz_close,
+	.vdev_op_asize = vdev_raidz_asize,
+	.vdev_op_io_start = vdev_raidz_io_start,
+	.vdev_op_io_done = vdev_raidz_io_done,
+	.vdev_op_state_change = vdev_raidz_state_change,
+	.vdev_op_need_resilver = vdev_raidz_need_resilver,
+	.vdev_op_hold = NULL,
+	.vdev_op_rele = NULL,
+	.vdev_op_remap = NULL,
+	.vdev_op_xlate = vdev_raidz_xlate,
+	.vdev_op_type = VDEV_TYPE_RAIDZ,	/* name of this vdev type */
+	.vdev_op_leaf = B_FALSE			/* not a leaf vdev */
 };

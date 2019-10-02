@@ -15,7 +15,7 @@
 .\" Copyright (c) 2017 Lawrence Livermore National Security, LLC.
 .\" Copyright (c) 2017 Intel Corporation.
 .\"
-.Dd April 14, 2017
+.Dd April 14, 2019
 .Dt ZDB 8 SMM
 .Os Linux
 .Sh NAME
@@ -78,10 +78,8 @@ some amount of consistency checking.
 It is a not a general purpose tool and options
 .Pq and facilities
 may change.
-This is neither a
-.Xr fsck 1M
-nor an
-.Xr fsdb 1M
+This is not a
+.Xr fsck 8
 utility.
 .Pp
 The output of this command in general reflects the on-disk structure of a ZFS
@@ -199,7 +197,8 @@ By default,
 .Nm
 verifies that all non-free blocks are referenced, which can be very expensive.
 .It Fl m
-Display the offset, spacemap, and free space of each metaslab.
+Display the offset, spacemap, free space of each metaslab, all the log
+spacemaps and their obsolete entry statistics.
 .It Fl mm
 Also display information about the on-disk free space histogram associated with
 each metaslab.
@@ -252,7 +251,7 @@ and, optionally,
 Print block pointer
 .It Sy d
 Decompress the block. Set environment variable
-.Nm ZBD_NO_ZLE
+.Nm ZDB_NO_ZLE
 to skip zle when guessing.
 .It Sy e
 Byte swap the block

@@ -21,7 +21,7 @@
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
- * Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+ * Copyright (c) 2012, 2018 by Delphix. All rights reserved.
  * Copyright (c) 2012, Joyent, Inc. All rights reserved.
  */
 
@@ -65,6 +65,7 @@
 #include <sys/procfs_list.h>
 #include <linux/dcache_compat.h>
 #include <linux/utsname_compat.h>
+#include <linux/mod_compat.h>
 
 #else /* _KERNEL */
 
@@ -122,6 +123,7 @@
 
 #define	noinline	__attribute__((noinline))
 #define	likely(x)	__builtin_expect((x), 1)
+#define	unlikely(x)	__builtin_expect((x), 0)
 
 /*
  * Debugging
@@ -200,6 +202,16 @@ extern int aok;
 	(unsigned long)i)
 
 /*
+ * Tunables.
+ */
+#define	ZFS_MODULE_PARAM(scope_prefix, name_prefix, name, type, perm, desc)
+
+/*
+ * Exported symbols
+ */
+#define	EXPORT_SYMBOL(x)
+
+/*
  * Threads.
  */
 typedef pthread_t	kthread_t;
@@ -257,6 +269,8 @@ extern void mutex_enter(kmutex_t *mp);
 extern void mutex_exit(kmutex_t *mp);
 extern int mutex_tryenter(kmutex_t *mp);
 
+#define	NESTED_SINGLE 1
+#define	mutex_enter_nested(mp, class) mutex_enter(mp)
 /*
  * RW locks
  */
@@ -305,6 +319,7 @@ typedef pthread_cond_t		kcondvar_t;
 extern void cv_init(kcondvar_t *cv, char *name, int type, void *arg);
 extern void cv_destroy(kcondvar_t *cv);
 extern void cv_wait(kcondvar_t *cv, kmutex_t *mp);
+extern int cv_wait_sig(kcondvar_t *cv, kmutex_t *mp);
 extern clock_t cv_timedwait(kcondvar_t *cv, kmutex_t *mp, clock_t abstime);
 extern clock_t cv_timedwait_hires(kcondvar_t *cvp, kmutex_t *mp, hrtime_t tim,
     hrtime_t res, int flag);
@@ -313,8 +328,8 @@ extern void cv_broadcast(kcondvar_t *cv);
 
 #define	cv_timedwait_io(cv, mp, at)		cv_timedwait(cv, mp, at)
 #define	cv_timedwait_sig(cv, mp, at)		cv_timedwait(cv, mp, at)
-#define	cv_wait_sig(cv, mp)			cv_wait(cv, mp)
 #define	cv_wait_io(cv, mp)			cv_wait(cv, mp)
+#define	cv_wait_io_sig(cv, mp)			cv_wait_sig(cv, mp)
 #define	cv_timedwait_sig_hires(cv, mp, t, r, f) \
 	cv_timedwait_hires(cv, mp, t, r, f)
 
@@ -375,6 +390,7 @@ typedef struct procfs_list_node {
 
 void procfs_list_install(const char *module,
     const char *name,
+    mode_t mode,
     procfs_list_t *procfs_list,
     int (*show)(struct seq_file *f, void *p),
     int (*show_header)(struct seq_file *f),
@@ -579,6 +595,8 @@ typedef struct vsecattr {
 
 #define	CRCREAT		0
 
+#define	F_FREESP	11
+
 extern int fop_getattr(vnode_t *vp, vattr_t *vap);
 
 #define	VOP_CLOSE(vp, f, c, o, cr, ct)	vn_close(vp)
@@ -586,6 +604,16 @@ extern int fop_getattr(vnode_t *vp, vattr_t *vap);
 #define	VOP_GETATTR(vp, vap, fl, cr, ct)  fop_getattr((vp), (vap));
 
 #define	VOP_FSYNC(vp, f, cr, ct)	fsync((vp)->v_fd)
+
+#if defined(HAVE_FILE_FALLOCATE) && \
+	defined(FALLOC_FL_PUNCH_HOLE) && \
+	defined(FALLOC_FL_KEEP_SIZE)
+#define	VOP_SPACE(vp, cmd, flck, fl, off, cr, ct) \
+	fallocate((vp)->v_fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, \
+	    (flck)->l_start, (flck)->l_len)
+#else
+#define	VOP_SPACE(vp, cmd, flck, fl, off, cr, ct) (0)
+#endif
 
 #define	VN_RELE(vp)	vn_close(vp)
 

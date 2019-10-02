@@ -33,8 +33,8 @@ SUBDIRS = \
 	largest_pool \
 	libzfs \
 	limits \
-	pyzfs \
 	link_count \
+	log_spacemap \
 	migration \
 	mmap \
 	mmp \
@@ -50,8 +50,10 @@ SUBDIRS = \
 	privilege \
 	procfs \
 	projectquota \
+	pyzfs \
 	quota \
 	raidz \
+	redacted_send \
 	redundancy \
 	refquota \
 	refreserv \
@@ -66,8 +68,10 @@ SUBDIRS = \
 	snapshot \
 	snapused \
 	sparse \
+	suid \
 	threadsappend \
 	tmpfile \
+	trim \
 	truncate \
 	upgrade \
 	user_namespace \

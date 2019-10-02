@@ -69,7 +69,6 @@
  */
 
 #include <ctype.h>
-#include <devid.h>
 #include <fcntl.h>
 #include <libnvpair.h>
 #include <libzfs.h>
@@ -157,7 +156,7 @@ zfs_unavail_pool(zpool_handle_t *zhp, void *data)
  * 1. physical match with no fs, no partition
  *	tag it top, partition disk
  *
- * 2. physical match again, see partion and tag
+ * 2. physical match again, see partition and tag
  *
  */
 
@@ -674,7 +673,7 @@ zfs_deliver_add(nvlist_t *nvl, boolean_t is_lofi)
 	    devid, devpath ? devpath : "NULL", is_slice);
 
 	/*
-	 * Iterate over all vdevs looking for a match in the folllowing order:
+	 * Iterate over all vdevs looking for a match in the following order:
 	 * 1. ZPOOL_CONFIG_DEVID (identifies the unique disk)
 	 * 2. ZPOOL_CONFIG_PHYS_PATH (identifies disk physical location).
 	 *
@@ -892,7 +891,7 @@ zfs_enum_pools(void *arg)
  *
  * sent messages from zevents or udev monitor
  *
- * For now, each agent has it's own libzfs instance
+ * For now, each agent has its own libzfs instance
  */
 int
 zfs_slm_init()

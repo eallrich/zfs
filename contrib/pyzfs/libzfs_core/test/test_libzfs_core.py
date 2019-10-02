@@ -1913,7 +1913,7 @@ class ZFSTest(unittest.TestCase):
                 filecmp.cmp(
                     os.path.join(mnt1, name), os.path.join(mnt2, name), False))
 
-    # This test case fails unless unless a patch from
+    # This test case fails unless a patch from
     # https://clusterhq.atlassian.net/browse/ZFS-20
     # is applied to libzfs_core, otherwise it succeeds.
     @unittest.skip("fails with unpatched libzfs_core")
@@ -2160,7 +2160,7 @@ class ZFSTest(unittest.TestCase):
         with streams(srcfs, src1, src2) as (_, (full, incr)):
             lzc.lzc_receive(dst1, full.fileno())
             lzc.lzc_snapshot([dst_snap])
-            # becase cannot receive incremental and set origin on a non-clone
+            # because cannot receive incremental and set origin on a non-clone
             with self.assertRaises(lzc_exc.BadStream):
                 lzc.lzc_receive(dst2, incr.fileno(), origin=dst1)
 
@@ -2375,7 +2375,7 @@ class ZFSTest(unittest.TestCase):
                 for i in range(1024):
                     f.write(b'x' * 1024)
                 lzc.lzc_receive(dst, stream.fileno(), force=True)
-                # The temporary file dissappears and any access, even close(),
+                # The temporary file disappears and any access, even close(),
                 # results in EIO.
                 self.assertFalse(os.path.exists(f.name))
                 with self.assertRaises(IOError):
@@ -2462,7 +2462,7 @@ class ZFSTest(unittest.TestCase):
                 for i in range(1024):
                     f.write(b'x' * 1024)
                 lzc.lzc_receive(dst2, incr.fileno(), force=True)
-                # The temporary file dissappears and any access, even close(),
+                # The temporary file disappears and any access, even close(),
                 # results in EIO.
                 self.assertFalse(os.path.exists(f.name))
                 with self.assertRaises(IOError):
@@ -3631,31 +3631,6 @@ zfs.sync.snapshot('""" + pool + b"""@zcp')
             lzc.lzc_unload_key(fs)
             with self.assertRaises(lzc_exc.EncryptionKeyNotLoaded):
                 lzc.lzc_unload_key(fs)
-
-    def test_remap_missing_fs(self):
-        name = b"nonexistent"
-
-        with self.assertRaises(lzc_exc.DatasetNotFound):
-            lzc.lzc_remap(name)
-
-    def test_remap_invalid_fs(self):
-        ds = ZFSTest.pool.makeName(b"fs1")
-        snap = ds + b"@snap1"
-
-        lzc.lzc_snapshot([snap])
-        with self.assertRaises(lzc_exc.NameInvalid):
-            lzc.lzc_remap(snap)
-
-    def test_remap_too_long_fs_name(self):
-        name = ZFSTest.pool.makeTooLongName()
-
-        with self.assertRaises(lzc_exc.NameTooLong):
-            lzc.lzc_remap(name)
-
-    def test_remap(self):
-        name = ZFSTest.pool.makeName(b"fs1")
-
-        lzc.lzc_remap(name)
 
     def test_checkpoint(self):
         pool = ZFSTest.pool.getRoot().getName()

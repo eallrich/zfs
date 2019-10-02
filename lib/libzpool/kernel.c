@@ -20,6 +20,7 @@
  */
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2018 by Delphix. All rights reserved.
  * Copyright (c) 2016 Actifio, Inc. All rights reserved.
  */
 
@@ -339,6 +340,13 @@ cv_wait(kcondvar_t *cv, kmutex_t *mp)
 	mp->m_owner = pthread_self();
 }
 
+int
+cv_wait_sig(kcondvar_t *cv, kmutex_t *mp)
+{
+	cv_wait(cv, mp);
+	return (1);
+}
+
 clock_t
 cv_timedwait(kcondvar_t *cv, kmutex_t *mp, clock_t abstime)
 {
@@ -437,6 +445,7 @@ seq_printf(struct seq_file *m, const char *fmt, ...)
 void
 procfs_list_install(const char *module,
     const char *name,
+    mode_t mode,
     procfs_list_t *procfs_list,
     int (*show)(struct seq_file *f, void *p),
     int (*show_header)(struct seq_file *f),
@@ -495,60 +504,16 @@ vn_open(char *path, int x1, int flags, int mode, vnode_t **vpp, int x2, int x3)
 	int dump_fd = -1;
 	vnode_t *vp;
 	int old_umask = 0;
-	char *realpath;
 	struct stat64 st;
 	int err;
 
-	realpath = umem_alloc(MAXPATHLEN, UMEM_NOFAIL);
-
-	/*
-	 * If we're accessing a real disk from userland, we need to use
-	 * the character interface to avoid caching.  This is particularly
-	 * important if we're trying to look at a real in-kernel storage
-	 * pool from userland, e.g. via zdb, because otherwise we won't
-	 * see the changes occurring under the segmap cache.
-	 * On the other hand, the stupid character device returns zero
-	 * for its size.  So -- gag -- we open the block device to get
-	 * its size, and remember it for subsequent VOP_GETATTR().
-	 */
-#if defined(__sun__) || defined(__sun)
-	if (strncmp(path, "/dev/", 5) == 0) {
-#else
-	if (0) {
-#endif
-		char *dsk;
-		fd = open64(path, O_RDONLY);
-		if (fd == -1) {
-			err = errno;
-			free(realpath);
-			return (err);
-		}
-		if (fstat64(fd, &st) == -1) {
-			err = errno;
-			close(fd);
-			free(realpath);
-			return (err);
-		}
-		close(fd);
-		(void) sprintf(realpath, "%s", path);
-		dsk = strstr(path, "/dsk/");
-		if (dsk != NULL)
-			(void) sprintf(realpath + (dsk - path) + 1, "r%s",
-			    dsk + 1);
-	} else {
-		(void) sprintf(realpath, "%s", path);
-		if (!(flags & FCREAT) && stat64(realpath, &st) == -1) {
-			err = errno;
-			free(realpath);
-			return (err);
-		}
+	if (!(flags & FCREAT) && stat64(path, &st) == -1) {
+		err = errno;
+		return (err);
 	}
 
-	if (!(flags & FCREAT) && S_ISBLK(st.st_mode)) {
-#ifdef __linux__
+	if (!(flags & FCREAT) && S_ISBLK(st.st_mode))
 		flags |= O_DIRECT;
-#endif
-	}
 
 	if (flags & FCREAT)
 		old_umask = umask(0);
@@ -557,10 +522,9 @@ vn_open(char *path, int x1, int flags, int mode, vnode_t **vpp, int x2, int x3)
 	 * The construct 'flags - FREAD' conveniently maps combinations of
 	 * FREAD and FWRITE to the corresponding O_RDONLY, O_WRONLY, and O_RDWR.
 	 */
-	fd = open64(realpath, flags - FREAD, mode);
+	fd = open64(path, flags - FREAD, mode);
 	if (fd == -1) {
 		err = errno;
-		free(realpath);
 		return (err);
 	}
 
@@ -570,20 +534,17 @@ vn_open(char *path, int x1, int flags, int mode, vnode_t **vpp, int x2, int x3)
 	if (vn_dumpdir != NULL) {
 		char *dumppath = umem_zalloc(MAXPATHLEN, UMEM_NOFAIL);
 		(void) snprintf(dumppath, MAXPATHLEN,
-		    "%s/%s", vn_dumpdir, basename(realpath));
+		    "%s/%s", vn_dumpdir, basename(path));
 		dump_fd = open64(dumppath, O_CREAT | O_WRONLY, 0666);
 		umem_free(dumppath, MAXPATHLEN);
 		if (dump_fd == -1) {
 			err = errno;
-			free(realpath);
 			close(fd);
 			return (err);
 		}
 	} else {
 		dump_fd = -1;
 	}
-
-	free(realpath);
 
 	if (fstat64_blk(fd, &st) == -1) {
 		err = errno;
@@ -812,7 +773,8 @@ __dprintf(boolean_t dprint, const char *file, const char *func,
 		if (dprintf_find_string("pid"))
 			(void) printf("%d ", getpid());
 		if (dprintf_find_string("tid"))
-			(void) printf("%u ", (uint_t)pthread_self());
+			(void) printf("%ju ",
+			    (uintmax_t)(uintptr_t)pthread_self());
 		if (dprintf_find_string("cpu"))
 			(void) printf("%u ", getcpuid());
 		if (dprintf_find_string("time"))

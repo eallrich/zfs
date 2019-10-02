@@ -763,7 +763,7 @@ main(int argc, char **argv)
 	uint32_t dvas = 0;
 
 	if ((g_zfs = libzfs_init()) == NULL) {
-		(void) fprintf(stderr, "%s", libzfs_error_init(errno));
+		(void) fprintf(stderr, "%s\n", libzfs_error_init(errno));
 		return (1);
 	}
 
@@ -1221,7 +1221,7 @@ main(int argc, char **argv)
 
 		if (dvas != 0) {
 			if (error == EACCES || error == EINVAL) {
-				(void) fprintf(stderr, "the '-c' option may "
+				(void) fprintf(stderr, "the '-C' option may "
 				    "not be used with logical data errors "
 				    "'decrypt' and 'decompress'\n");
 				libzfs_fini(g_zfs);

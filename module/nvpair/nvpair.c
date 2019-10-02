@@ -1872,7 +1872,7 @@ nvlist_lookup_pairs(nvlist_t *nvl, int flag, ...)
  * (given 'ret' is non-NULL). If 'sep' is specified then 'name' will penitrate
  * multiple levels of embedded nvlists, with 'sep' as the separator. As an
  * example, if sep is '.', name might look like: "a" or "a.b" or "a.c[3]" or
- * "a.d[3].e[1]".  This matches the C syntax for array embed (for convience,
+ * "a.d[3].e[1]".  This matches the C syntax for array embed (for convenience,
  * code also supports "a.d[3]e[1]" syntax).
  *
  * If 'ip' is non-NULL and the last name component is an array, return the
@@ -2714,7 +2714,8 @@ nvlist_xunpack(char *buf, size_t buflen, nvlist_t **nvlp, nv_alloc_t *nva)
 	if ((err = nvlist_xalloc(&nvl, 0, nva)) != 0)
 		return (err);
 
-	if ((err = nvlist_common(nvl, buf, &buflen, 0, NVS_OP_DECODE)) != 0)
+	if ((err = nvlist_common(nvl, buf, &buflen, NV_ENCODE_NATIVE,
+	    NVS_OP_DECODE)) != 0)
 		nvlist_free(nvl);
 	else
 		*nvlp = nvl;
@@ -3104,7 +3105,7 @@ nvs_native(nvstream_t *nvs, nvlist_t *nvl, char *buf, size_t *buflen)
  *
  * An xdr packed nvlist is encoded as:
  *
- *  - encoding methode and host endian (4 bytes)
+ *  - encoding method and host endian (4 bytes)
  *  - nvl_version (4 bytes)
  *  - nvl_nvflag (4 bytes)
  *
@@ -3498,7 +3499,7 @@ nvs_xdr_nvp_size(nvstream_t *nvs, nvpair_t *nvp, size_t *size)
  * the strings.  These pointers are not encoded into the packed xdr buffer.
  *
  * If the data is of type DATA_TYPE_STRING_ARRAY and all the strings are
- * of length 0, then each string is endcoded in xdr format as a single word.
+ * of length 0, then each string is encoded in xdr format as a single word.
  * Therefore when expanded to an nvpair there will be 2.25 word used for
  * each string.  (a int64_t allocated for pointer usage, and a single char
  * for the null termination.)
